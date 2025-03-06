@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>London at Night</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+      
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      #sidebar {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 300px;
+        background: #000f2a;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        z-index: 2;
+        border: 2px solid white;
+      }
+
+      #title {
+        font-size: 30px;
+        font-weight: bold;
+        font-family: 'Poppins', sans-serif;
+        color: #88feff;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+
+      #subtitle {
+        font-size: 16px;
+        font-weight: bold;
+        font-family: 'Poppins', sans-serif;
+        color: #88feff;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+
+      #description {
+        font-family: 'Poppins', sans-serif;
+        color: white;
+        font-size:10px;
+        font-weight: 100;
+      }
+
+      .checkbox-container {
+        margin-top: 10px;
+      }
+
+      .layer-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 10px;
+        color: #ffcc00;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="sidebar">
+      <div id="title">LONDON AT NIGHT</div>
+      <div id="subtitle">A 24-Hour City or Just a Late-Night Illusion?</div>
+      <p id="description">The London at Night: An Updated Evidence Base for a 24-Hour City (2024) report, built on classifications from the London Night-Time Commission’s Data and Research Group (2018), explored the night-time economy through spend share, night workers, visitors, and travel patterns. However, it failed to document truly 24-hour services, focusing instead on activities between 6 PM and 6 AM, as defined by the GLA. This project maps London’s actual round-the-clock sites, revealing whether the city truly operates 24/7 or if the myth of an "always-on" London is just that—a myth.</p>
+      <div class="checkbox-container" id="layer-controls"><div class="layer-title">Establishment Typology</div></div>
+    </div>
+    <div id="map"></div>
+    
+    <script>
+      mapboxgl.accessToken = 'pk.eyJ1IjoibWFoZWVyLW1hcHMiLCJhIjoiY201eTQ1Y3o4MGEzazJqcjJzY2N5Y3N3eSJ9.46hoKifS-rGSZ_8px3JlsQ';
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/maheer-maps/cm7wc4hm600n801qs6ets39jy',
+        center: [-0.1276, 51.5072],
+        zoom: 10.7
+      });
+
+      map.on('load', () => {
+        fetch('night_data_type.geojson')
+          .then(response => response.json())
+          .then(data => {
+            const types = [...new Set(data.features.map(feature => feature.properties.type))];
+
+            types.forEach(type => {
+              map.addLayer({
+                id: type,
+                type: 'circle',
+                source: {
+                  type: 'geojson',
+                  data: {
+                    type: 'FeatureCollection',
+                    features: data.features.filter(feature => feature.properties.type === type)
+                  }
+                },
+                paint: {
+                  'circle-radius': 6,
+                  'circle-color': '#39FF14'
+                }
+              });
+
+              const checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.id = type;
+              checkbox.checked = true;
+              checkbox.addEventListener('change', (e) => {
+                map.setLayoutProperty(type, 'visibility', e.target.checked ? 'visible' : 'none');
+              });
+
+              const label = document.createElement('label');
+              label.htmlFor = type;
+              label.textContent = type;
+              label.style.color = '#ffcc00';
+              label.style.fontWeight = 'bold';
+
+              const container = document.getElementById('layer-controls');
+              container.appendChild(checkbox);
+              container.appendChild(label);
+              container.appendChild(document.createElement('br'));
+            });
+
+            map.on('click', (event) => {
+              const features = map.queryRenderedFeatures(event.point);
+              if (features.length) {
+                const feature = features[0];
+                const popup = new mapboxgl.Popup()
+                  .setLngLat(feature.geometry.coordinates)
+                  .setHTML(`<strong>${feature.properties.amenity}</strong>`)
+                  .addTo(map);
+              }
+            });
+          });
+      });
+    </script>
+  </body>
+</html>
